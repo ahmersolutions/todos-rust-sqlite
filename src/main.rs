@@ -11,9 +11,9 @@ struct Todo {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let db_file = Path::new("/tmp/todos.db").exists();
+    let db_file = Path::new("/home/ystsol/todos.db").exists();
     if !db_file {
-        let conn = Connection::open("/tmp/todos.db").unwrap();
+        let conn = Connection::open("/home/ystsol/todos.db").unwrap();
         let sql_query = "
         CREATE TABLE IF NOT EXISTS todos(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,7 +29,7 @@ fn main() {
         return;
     }
 
-    let conn = Connection::open("/tmp/todos.db").unwrap();
+    let conn = Connection::open("/home/ystsol/todos.db").unwrap();
     if args.len() == 1 {
         let select_sql_query =
             "SELECT id, task, completed, created_at, completed_at from todos ORDER BY id DESC";
@@ -65,56 +65,60 @@ fn main() {
     }
 
     if args.len() > 1 {
-        if args[1] == "add" {
-            let task = args[2..].join(" ");
-            conn.execute("INSERT INTO todos (task) VALUES (?1)", [task])
-                .unwrap();
-            println!("✅ Task has been added!");
-        }
-        if args[1] == "delete" {
-            if args.len() < 3 {
-                println!("❌ Please provide a task ID to delete");
-                return;
+        match args[1].as_str() {
+            "add" => {
+                let task = args[2..].join(" ");
+                conn.execute("INSERT INTO todos (task) VALUES (?1)", [task])
+                    .unwrap();
+                println!("✅ Task has been added!");
             }
-            let id: usize = match args[2].parse() {
-                Ok(num) => num,
-                Err(_) => {
-                    println!("❌ Invalid ID format");
+            "delete" => {
+                if args.len() < 3 {
+                    println!("❌ Please provide a task ID to delete");
                     return;
                 }
-            };
-            let rows_affected = conn
-                .execute("DELETE FROM todos WHERE id = ?1", [id])
-                .unwrap();
-            if rows_affected > 0 {
-                println!("🗑️ Task deleted successfully!");
-            } else {
-                println!("❌ No task found with ID {}", id);
+                let id: usize = match args[2].parse() {
+                    Ok(num) => num,
+                    Err(_) => {
+                        println!("❌ Invalid ID format");
+                        return;
+                    }
+                };
+                let rows_affected = conn
+                    .execute("DELETE FROM todos WHERE id = ?1", [id])
+                    .unwrap();
+                if rows_affected > 0 {
+                    println!("🗑️ Task deleted successfully!");
+                } else {
+                    println!("❌ No task found with ID {}", id);
+                }
             }
-        }
-
-        if args[1] == "complete" {
-            if args.len() < 3 {
-                println!("❌ Please provide a task ID to complete");
-                return;
-            }
-            let id: usize = match args[2].parse() {
-                Ok(num) => num,
-                Err(_) => {
-                    println!("❌ Invalid ID format");
+            "complete" => {
+                if args.len() < 3 {
+                    println!("❌ Please provide a task ID to complete");
                     return;
                 }
-            };
-            let rows_affected = conn
+                let id: usize = match args[2].parse() {
+                    Ok(num) => num,
+                    Err(_) => {
+                        println!("❌ Invalid ID format");
+                        return;
+                    }
+                };
+                let rows_affected = conn
             .execute(
                 "UPDATE todos SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE id = ?1",
                 [id],
             )
             .unwrap();
-            if rows_affected > 0 {
-                println!("✅ Task marked as completed!");
-            } else {
-                println!("❌ No task found with ID {}", id);
+                if rows_affected > 0 {
+                    println!("✅ Task marked as completed!");
+                } else {
+                    println!("❌ No task found with ID {}", id);
+                }
+            }
+            _ => {
+                println!("Unknown Command. Please use add, delete, complete.")
             }
         }
     }
